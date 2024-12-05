@@ -11,8 +11,15 @@
       <div>Error loading map: {{ error }}</div>
     </div>
 
-    <div class="fixed bottom-0 left-2 w-full flex gap-4">
-      <Chat />
+    <div class="fixed bottom-0 left-2 w-fit flex gap-4">
+      <Chat
+        v-for="user in activeChats"
+        :key="user.id"
+        :messages="messages"
+        :target="user"
+        @close="closeChat"
+        @messageSent="messageHandler"
+      />
     </div>
 
     <div
@@ -23,7 +30,7 @@
         <div class="font-bold">{{ label }}</div>
         <div class="text-sm text-gray-200">{{ distance }} KM away</div>
       </div>
-      <button>
+      <button @click="startChat">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -36,6 +43,21 @@
         </svg>
       </button>
     </div>
+
+    <button
+      class="fixed bottom-2 right-16 bg-[var(--secondary-color)] text-[var(--primary-color)] rounded-full p-4"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        class="w-8 h-8 fill-[var(--primary-color)]"
+      >
+        <title>phone</title>
+        <path
+          d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"
+        />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -46,13 +68,20 @@ import Chat from "./components/Chat.vue";
 import { useStore } from "../../store/store";
 import lodash from "lodash";
 import { Position } from "../../types/position";
+import { Message } from "../../types/message";
 import { socketEvents } from "../../services/socket";
 import { User } from "../../types/user";
 import { emitter } from "../../main";
 
 declare const google: any;
 
-export default defineComponent({  
+interface MessageData {
+  content: string;
+  from: string;
+  to: string;
+}
+
+export default defineComponent({
   name: "Map",
 
   components: {
@@ -74,11 +103,70 @@ export default defineComponent({
       distance: null as number | null,
       cardVisible: false as boolean,
       map: null as any,
-      markers: {} as { [key: string]: any },
+
+      activeChats: [] as User[],
+      messages: [] as Message[],
+      maxChats: 3 as number,
     };
   },
 
   methods: {
+    startChat() {
+      if (this.label) {
+        const user = this.store.onlineUsers.find(
+          (user: User) => user.name === this.label
+        );
+        if (!this.activeChats.some((chat: User) => chat.id === user.id)) {
+          if (this.activeChats.length >= this.maxChats) {
+            this.activeChats.shift();
+          } else {
+            this.activeChats.push(user);
+          }
+        }
+      }
+    },
+
+    closeChat(user: User) {
+      this.activeChats = this.activeChats.filter(
+        (chat: User) => chat.id !== user.id
+      );
+    },
+
+    messageHandler(message: Message) {
+      this.messages.push(message);
+    },
+
+    receivedMessage(data: MessageData) {
+      const isExistingChat = this.activeChats.some(
+        (chat: User) => chat.id === data.from
+      );
+      const sender = this.store.onlineUsers.find(
+        (user: User) => user.id === data.from
+      );
+
+      if (!sender) {
+        console.warn("Message received from unknown sender:", data.from);
+        return;
+      }
+
+      const newMessage = {
+        id: this.messages.length + 1,
+        content: data.content,
+        from: data.from,
+        senderId: data.from,
+        receiverId: data.to,
+        createdAt: new Date(),
+      };
+
+      if (!isExistingChat) {
+        this.activeChats.push(sender);
+      }
+
+      this.messages.push(newMessage);
+
+      new Audio("/new-message.mp3").play();
+    },
+
     getCoords() {
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -182,25 +270,41 @@ export default defineComponent({
         this.loading = false;
       }
     },
-  },
 
-  mounted() {
-    this.initializeMap();
-
-    socketEvents.userJoined();
-    socketEvents.userLeft();
-    socketEvents.sendOnlineUsers();
-
-    emitter.on("onlineUsers", (users: User[]) => {
+    onlineUsersHandler(users: User[]) {
       let usersEdited = users.filter((user) => user.id !== this.store.id);
 
       usersEdited.length > 0 &&
         usersEdited.forEach((user) => {
           this.createMarker(user.position, user.name);
         });
+    },
+  },
+
+  mounted() {
+    this.initializeMap();
+
+    socketEvents.userLeft();
+    socketEvents.receiveMessage();
+
+    emitter.on("onlineUsers", (users: User[]) => {
+      this.onlineUsersHandler(users);
     });
     emitter.on("userJoined", (user: User) => {
       this.createMarker(user.position, user.name);
+    });
+
+    emitter.on("userLeft", (user: string) => {
+      const userToClose = this.activeChats.find(
+        (chat: User) => chat.name === user
+      );
+
+      console.log("userToClose", userToClose);
+      userToClose && this.closeChat(userToClose);
+    });
+
+    emitter.on("message", (data: MessageData) => {
+      this.receivedMessage(data);
     });
   },
 
@@ -209,6 +313,7 @@ export default defineComponent({
     emitter.off("onlineUsers");
     emitter.off("userJoined");
     emitter.off("userLeft");
+    emitter.off("message");
   },
 });
 </script>

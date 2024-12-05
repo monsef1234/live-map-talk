@@ -34,6 +34,13 @@ io.on("connection", (socket: Socket) => {
         console.log("User disconnected:", socket.id);
         disconnectHandler(socket);
     });
+
+    socket.on("sendMessage", (data) => {
+        messageHandler(socket, data);
+    });
+
+    sendOnlineUsersHandler(socket);
+
 });
 
 httpServer.listen(3003, () => {
@@ -60,5 +67,13 @@ const loginHandler = (socket: Socket, data: { name: string; position: Position }
 
     socket.broadcast.emit("userJoined", newUser);
 
+    socket.emit("onlineUsers", onlineUsers);
+};
+
+const messageHandler = (socket: Socket, data: { content: string; to: string; from: string }) => {
+    socket.to(data.to).emit("message", data);
+};
+
+const sendOnlineUsersHandler = (socket: Socket) => {
     socket.emit("onlineUsers", onlineUsers);
 };

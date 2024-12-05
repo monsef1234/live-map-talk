@@ -49,7 +49,33 @@ export const socketEvents = {
     sendOnlineUsers: () => {
         socket.on("onlineUsers", (data: User[]) => {
             store.setOnlineUsers(data);
+            console.log("onlineUsers", store.onlineUsers);
             emitter.emit("onlineUsers", data);
+
         });
-    }
+    },
+
+    sendMessage: (message: string, to: string) => {
+        socket.emit("sendMessage", {
+            content: message,
+            to,
+            from: store.id,
+        });
+    },
+
+    receiveMessage: () => {
+        console.log("receiveMessage");
+        socket.on("message", (data) => {
+            emitter.emit("message", data);
+        });
+    },
+
+    removeReceiveMessage: () => {
+        socket.off("message");
+    },
+
+    removeUserJoined: () => {
+        socket.off("userJoined");
+    },
 };
+

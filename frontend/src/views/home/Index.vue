@@ -15,9 +15,11 @@
             class="p-2 rounded-md w-full outline-none"
             v-model="name"
           />
-          <small class="text-red-400 text-xs" v-if="error && !name">{{
-            error
-          }}</small>
+          <small
+            class="text-red-400 text-xs"
+            v-if="(!name && error) || (name && error)"
+            >{{ error }}</small
+          >
         </div>
 
         <button
@@ -34,9 +36,11 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { emitter } from "../../main";
 import { socketEvents } from "../../services/socket";
 
 import { useStore } from "../../store/store";
+import { User } from "../../types/user";
 
 export default defineComponent({
   name: "Home",
@@ -61,13 +65,23 @@ export default defineComponent({
         return;
       }
 
-      this.store.setName(this.name);
-      this.$router.replace("/map");
+      const existingUser = this.store.onlineUsers.find(
+        (user: User) => user.name === this.name
+      );
+
+      if (existingUser) {
+        this.error = "Name already taken";
+      } else {
+        this.store.setName(this.name);
+        this.$router.replace("/map");
+      }
     },
   },
 
   mounted() {
     socketEvents.connect();
+    socketEvents.sendOnlineUsers();
+    socketEvents.userJoined();
   },
 });
 </script>

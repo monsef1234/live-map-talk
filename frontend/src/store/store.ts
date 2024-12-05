@@ -6,7 +6,7 @@ import { Position } from "@/types/position";
 export const useStore = defineStore("map", {
     state: () => ({
         position: null as Position | null,
-        name: "" as string,
+        name: "monsef" as string,
         id: "" as string,
         onlineUsers: [] as User[],
     }),
