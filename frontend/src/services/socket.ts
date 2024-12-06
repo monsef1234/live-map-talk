@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useStore } from "@/store/store";
 import { emitter } from "@/main";
 import { Position } from "@/types/position";
+import { Room } from "@/types/room";
 
 const store = useStore();
 export const socket = io("http://localhost:3003");
@@ -76,6 +77,22 @@ export const socketEvents = {
 
     removeUserJoined: () => {
         socket.off("userJoined");
+    },
+
+    sendRoom: (room: Room) => {
+        socket.emit("sendRoom", room);
+    },
+
+    receiveRoom: () => {
+        socket.on("sendRoom", (data: Room) => {
+            emitter.emit("sendRoom", data);
+        });
+    },
+
+    receiveRooms: () => {
+        socket.on("rooms", (data: Room[]) => {
+            store.setRooms(data);
+        });
     },
 };
 

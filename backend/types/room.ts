@@ -1,0 +1,9 @@
+import { User } from "./user";
+
+export interface Room {
+    id: string;
+    name: string;
+    owner: string;
+    disabled: boolean;
+    users: User[];
+}

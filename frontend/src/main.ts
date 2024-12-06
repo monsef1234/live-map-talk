@@ -1,13 +1,14 @@
 import { createApp } from 'vue'
-
 import { createPinia } from 'pinia'
+import { TinyEmitter } from 'tiny-emitter'
 import router from './router'
 import App from './App.vue'
-import { TinyEmitter } from 'tiny-emitter'
-
 import './style.css'
 
-const pinia = createPinia()
 export const emitter = new TinyEmitter()
+const app = createApp(App)
 
-createApp(App).use(router).use(pinia).mount('#app')
+app
+  .use(router)
+  .use(createPinia())
+  .mount('#app')

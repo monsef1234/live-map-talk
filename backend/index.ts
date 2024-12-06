@@ -3,6 +3,7 @@ import { Server, type Socket } from "socket.io";
 import { createServer } from "http";
 import { User } from "./types/user";
 import { Position } from "./types/position";
+import { Room } from "./types/room";
 
 const app = express();
 const httpServer = createServer(app);
@@ -14,6 +15,7 @@ const io = new Server(httpServer, {
 });
 
 let onlineUsers: User[] = [];
+let rooms: Room[] = [];
 
 app.get("/", (res: Response) => {
     res.send("Hello World");
@@ -39,7 +41,13 @@ io.on("connection", (socket: Socket) => {
         messageHandler(socket, data);
     });
 
-    sendOnlineUsersHandler(socket);
+    socket.on("sendRoom", (data) => {
+        sendRoomHandler(socket, data);
+    });
+
+    socket.emit("onlineUsers", onlineUsers);
+    socket.emit("rooms", rooms);
+
 
 });
 
@@ -74,6 +82,7 @@ const messageHandler = (socket: Socket, data: { content: string; to: string; fro
     socket.to(data.to).emit("message", data);
 };
 
-const sendOnlineUsersHandler = (socket: Socket) => {
-    socket.emit("onlineUsers", onlineUsers);
+const sendRoomHandler = (socket: Socket, data: Room) => {
+    rooms.push(data);
+    socket.broadcast.emit("sendRoom", data);
 };

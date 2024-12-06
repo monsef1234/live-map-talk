@@ -1,14 +1,16 @@
 import { User } from "@/types/user";
 import { defineStore } from "pinia";
 import { Position } from "@/types/position";
+import { Room } from "@/types/room";
 
 
 export const useStore = defineStore("map", {
     state: () => ({
         position: null as Position | null,
-        name: "monsef" as string,
+        name: "" as string,
         id: "" as string,
         onlineUsers: [] as User[],
+        rooms: [] as Room[],
     }),
 
     actions: {
@@ -23,6 +25,10 @@ export const useStore = defineStore("map", {
 
         setName(name: string) {
             this.name = name
+        },
+
+        setRooms(rooms: Room[]) {
+            this.rooms = rooms;
         },
 
         setOnlineUsers(users: User[]) {

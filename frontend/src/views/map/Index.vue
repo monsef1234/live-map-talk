@@ -31,33 +31,33 @@
         <div class="text-sm text-gray-200">{{ distance }} KM away</div>
       </div>
       <button @click="startChat">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="w-8 h-8 fill-[var(--primary-color)]"
-        >
-          <title>chat-processing</title>
-          <path
-            d="M12,3C17.5,3 22,6.58 22,11C22,15.42 17.5,19 12,19C10.76,19 9.57,18.82 8.47,18.5C5.55,21 2,21 2,21C4.33,18.67 4.7,17.1 4.75,16.5C3.05,15.07 2,13.13 2,11C2,6.58 6.5,3 12,3M17,12V10H15V12H17M13,12V10H11V12H13M9,12V10H7V12H9Z"
-          />
-        </svg>
+        <ChatIcon />
       </button>
     </div>
 
     <button
-      class="fixed bottom-2 right-16 bg-[var(--secondary-color)] text-[var(--primary-color)] rounded-full p-4"
+      @click="startCall"
+      :disabled="disabledCall"
+      class="fixed bottom-2 right-16 bg-[var(--secondary-color)] text-[var(--primary-color)] rounded-full p-4 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        class="w-8 h-8 fill-[var(--primary-color)]"
-      >
-        <title>phone</title>
-        <path
-          d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"
-        />
-      </svg>
+      <PhoneIcon />
     </button>
+
+    <div class="fixed bottom-2 right-48 flex gap-4">
+      <button
+        v-for="room in store.rooms"
+        :key="room.id"
+        @click="joinRoom(room)"
+        :disabled="room.disabled"
+        class="bg-[var(--secondary-color)] w-14 h-14 text-[var(--primary-color)] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ room.name }}
+      </button>
+    </div>
+
+    <div class="fixed bottom-48 right-8">
+      <Call />
+    </div>
   </div>
 </template>
 
@@ -72,6 +72,10 @@ import { Message } from "../../types/message";
 import { socketEvents } from "../../services/socket";
 import { User } from "../../types/user";
 import { emitter } from "../../main";
+import Call from "./components/Call.vue";
+import PhoneIcon from "./components/icons/PhoneIcon.vue";
+import ChatIcon from "./components/icons/ChatIcon.vue";
+import { Room } from "../../types/room";
 
 declare const google: any;
 
@@ -86,6 +90,9 @@ export default defineComponent({
 
   components: {
     Chat,
+    Call,
+    PhoneIcon,
+    ChatIcon,
   },
 
   setup() {
@@ -107,23 +114,134 @@ export default defineComponent({
       activeChats: [] as User[],
       messages: [] as Message[],
       maxChats: 3 as number,
+
+      room: null as Room | null,
+      disabledCall: false as boolean,
+      maxRoomUsers: 2 as number,
     };
   },
 
   methods: {
-    startChat() {
-      if (this.label) {
-        const user = this.store.onlineUsers.find(
-          (user: User) => user.name === this.label
-        );
-        if (!this.activeChats.some((chat: User) => chat.id === user.id)) {
-          if (this.activeChats.length >= this.maxChats) {
-            this.activeChats.shift();
-          } else {
-            this.activeChats.push(user);
-          }
-        }
+    async joinRoom(room: Room) {
+      if (room.users.length >= this.maxRoomUsers) {
+        console.warn("Cannot join: Room is full");
+        return;
       }
+
+      const newUser = {
+        id: this.store.id,
+        name: this.store.name,
+        position: this.store.position,
+      };
+
+      const existingRoom = this.store.rooms.find(
+        (r: Room) => r.owner === newUser.id
+      );
+      if (existingRoom) {
+        this.store.setRooms(
+          this.store.rooms.filter((r: Room) => r.owner !== newUser.id)
+        );
+      }
+
+      const targetRoom = this.store.rooms.find((r: Room) => r.id === room.id);
+      if (!targetRoom) {
+        console.error("Room not found");
+        return;
+      }
+
+      targetRoom.users.push(newUser);
+      targetRoom.disabled = targetRoom.users.length === 2;
+      this.room = targetRoom;
+
+      try {
+        const stream = await this.getUserMedia();
+        emitter.emit("call", stream);
+        this.disabledCall = true;
+      } catch (error) {
+        console.error("Failed to start media stream:", error);
+        targetRoom.users = targetRoom.users.filter(
+          (u: User) => u.id !== newUser.id
+        );
+        this.room = null;
+      }
+    },
+
+    async startCall() {
+      try {
+        const stream = await this.getUserMedia();
+
+        const newRoom = {
+          id: Date.now().toString(),
+          name: this.store.name.slice(0, 1).toUpperCase(),
+          owner: this.store.id,
+          disabled: true,
+          users: [
+            {
+              id: this.store.id,
+              name: this.store.name,
+              position: this.store.position,
+            },
+          ],
+        };
+
+        this.store.setRooms([...this.store.rooms, newRoom]);
+        this.room = newRoom;
+        this.disabledCall = true;
+
+        socketEvents.sendRoom(newRoom);
+
+        emitter.emit("call", stream);
+      } catch (err) {
+        console.error("Failed to start call:", err);
+        this.room = null;
+      }
+    },
+
+    endCall() {
+      const existingRoom = this.store.rooms.find(
+        (r: Room) => r.owner === this.room?.owner
+      );
+      if (existingRoom) {
+        this.store.setRooms(
+          this.store.rooms.filter((r: Room) => r.owner !== this.room?.owner)
+        );
+        this.room = null;
+      }
+
+      this.disabledCall = false;
+    },
+
+    getUserMedia() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("getUserMedia not supported");
+      }
+
+      return navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+    },
+
+    startChat() {
+      if (!this.label) {
+        return;
+      }
+
+      const targetUser = this.store.onlineUsers.find(
+        (user: User) => user.name === this.label
+      );
+      const isUserAlreadyInChat = this.activeChats.some(
+        (chat: User) => chat.id === targetUser.id
+      );
+      if (!targetUser || isUserAlreadyInChat) {
+        return;
+      }
+
+      if (this.activeChats.length >= this.maxChats) {
+        this.activeChats.shift();
+      }
+
+      this.activeChats.push(targetUser);
     },
 
     closeChat(user: User) {
@@ -188,7 +306,7 @@ export default defineComponent({
 
             resolve(this.store.position);
           },
-          (error) => reject(error),
+          (error: GeolocationPositionError) => reject(error),
           {
             timeout: 5000,
             enableHighAccuracy: true,
@@ -286,6 +404,7 @@ export default defineComponent({
 
     socketEvents.userLeft();
     socketEvents.receiveMessage();
+    socketEvents.receiveRoom();
 
     emitter.on("onlineUsers", (users: User[]) => {
       this.onlineUsersHandler(users);
@@ -306,6 +425,15 @@ export default defineComponent({
     emitter.on("message", (data: MessageData) => {
       this.receivedMessage(data);
     });
+
+    emitter.on("sendRoom", (room: Room) => {
+      room.disabled = room.users.length === 2;
+      this.store.setRooms([...this.store.rooms, room]);
+    });
+
+    emitter.on("endCall", () => {
+      this.endCall();
+    });
   },
 
   beforeUnmount() {
@@ -314,6 +442,9 @@ export default defineComponent({
     emitter.off("userJoined");
     emitter.off("userLeft");
     emitter.off("message");
+    emitter.off("endCall");
+    emitter.off("sendRoom");
+    emitter.off("receivedRooms");
   },
 });
 </script>
