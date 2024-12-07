@@ -18,7 +18,6 @@ export const useStore = defineStore("map", {
             this.position = position;
         },
 
-
         setId(id: string) {
             this.id = id;
         },

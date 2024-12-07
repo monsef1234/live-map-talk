@@ -18,6 +18,9 @@ export const socketEvents = {
 
     disconnect: () => {
         socket.disconnect();
+
+        store.setOnlineUsers([]);
+        store.setRooms([]);
     },
 
     login: (data: { name: string; position: Position }) => {
@@ -52,7 +55,6 @@ export const socketEvents = {
             store.setOnlineUsers(data);
             console.log("onlineUsers", store.onlineUsers);
             emitter.emit("onlineUsers", data);
-
         });
     },
 
@@ -85,12 +87,15 @@ export const socketEvents = {
 
     receiveRoom: () => {
         socket.on("sendRoom", (data: Room) => {
-            emitter.emit("sendRoom", data);
+            data.disabled = data.users.length === 2;
+            store.setRooms([...store.rooms, data]);
         });
     },
 
     receiveRooms: () => {
         socket.on("rooms", (data: Room[]) => {
+            console.log(data);
+
             store.setRooms(data);
         });
     },

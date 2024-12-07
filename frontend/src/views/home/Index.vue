@@ -83,6 +83,7 @@ export default defineComponent({
     socketEvents.sendOnlineUsers();
     socketEvents.userJoined();
     socketEvents.receiveRooms();
+    socketEvents.receiveRoom();
   },
 });
 </script>

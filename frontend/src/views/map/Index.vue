@@ -76,6 +76,7 @@ import Call from "./components/Call.vue";
 import PhoneIcon from "./components/icons/PhoneIcon.vue";
 import ChatIcon from "./components/icons/ChatIcon.vue";
 import { Room } from "../../types/room";
+import Peer from "peerjs";
 
 declare const google: any;
 
@@ -97,8 +98,9 @@ export default defineComponent({
 
   setup() {
     const store = useStore();
+    const peer = new Peer(store?.id);
 
-    return { store };
+    return { store, peer };
   },
 
   data() {
@@ -155,6 +157,12 @@ export default defineComponent({
 
       try {
         const stream = await this.getUserMedia();
+        const call = this.peer.call(room.owner, stream);
+
+        call.on("stream", (remoteStream: MediaStream) => {
+          emitter.emit("remoteStream", remoteStream);
+        });
+
         emitter.emit("call", stream);
         this.disabledCall = true;
       } catch (error) {
@@ -188,9 +196,19 @@ export default defineComponent({
         this.room = newRoom;
         this.disabledCall = true;
 
-        socketEvents.sendRoom(newRoom);
+        socketEvents.sendRoom({
+          ...newRoom,
+          disabled: false,
+        });
 
         emitter.emit("call", stream);
+
+        this.peer.on("call", (call: any) => {
+          call.answer(stream);
+          call.on("stream", (remoteStream: MediaStream) => {
+            emitter.emit("remoteStream", remoteStream);
+          });
+        });
       } catch (err) {
         console.error("Failed to start call:", err);
         this.room = null;
@@ -404,7 +422,6 @@ export default defineComponent({
 
     socketEvents.userLeft();
     socketEvents.receiveMessage();
-    socketEvents.receiveRoom();
 
     emitter.on("onlineUsers", (users: User[]) => {
       this.onlineUsersHandler(users);
@@ -412,25 +429,16 @@ export default defineComponent({
     emitter.on("userJoined", (user: User) => {
       this.createMarker(user.position, user.name);
     });
-
     emitter.on("userLeft", (user: string) => {
       const userToClose = this.activeChats.find(
         (chat: User) => chat.name === user
       );
 
-      console.log("userToClose", userToClose);
       userToClose && this.closeChat(userToClose);
     });
-
     emitter.on("message", (data: MessageData) => {
       this.receivedMessage(data);
     });
-
-    emitter.on("sendRoom", (room: Room) => {
-      room.disabled = room.users.length === 2;
-      this.store.setRooms([...this.store.rooms, room]);
-    });
-
     emitter.on("endCall", () => {
       this.endCall();
     });
@@ -438,13 +446,12 @@ export default defineComponent({
 
   beforeUnmount() {
     socketEvents.disconnect();
+
     emitter.off("onlineUsers");
     emitter.off("userJoined");
     emitter.off("userLeft");
     emitter.off("message");
     emitter.off("endCall");
-    emitter.off("sendRoom");
-    emitter.off("receivedRooms");
   },
 });
 </script>

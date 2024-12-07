@@ -41,7 +41,6 @@ import MicrophoneOffIcon from "./icons/MicrophoneOffIcon.vue";
 import CameraOffIcon from "./icons/CameraOffIcon.vue";
 import PhoneOffIcon from "./icons/PhoneOffIcon.vue";
 import { emitter } from "../../../main";
-import Peer from "peerjs";
 export default defineComponent({
   name: "Call",
 
@@ -54,13 +53,10 @@ export default defineComponent({
     const remoteVideo = ref<HTMLVideoElement | null>(null);
     const localStream = ref<MediaStream | null>(null);
 
-    const peer = new Peer();
-
     return {
       localVideo,
       remoteVideo,
       localStream,
-      peer,
       MicrophoneIcon,
       CameraIcon,
       MicrophoneOffIcon,
@@ -104,29 +100,23 @@ export default defineComponent({
 
       emitter.emit("endCall");
     },
-
-    initializePeer() {
-      this.peer.on("open", (id: string) => {
-        console.log("Peer ID:", id);
-      });
-    },
   },
 
   mounted() {
-    this.initializePeer();
-
     emitter.on("call", (stream: MediaStream) => {
-      console.log("call", stream);
-
       this.localStream = stream;
       this.localVideo.srcObject = stream;
     });
+    emitter.on("remoteStream", (stream: MediaStream) => {
+      console.log("remoteStream", stream);
 
-  
+      this.remoteVideo.srcObject = stream;
+    });
   },
 
   beforeUnmount() {
     emitter.off("call");
+    emitter.off("remoteStream");
   },
 });
 </script>

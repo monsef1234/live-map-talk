@@ -34,7 +34,8 @@ io.on("connection", (socket: Socket) => {
 
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
-        disconnectHandler(socket);
+        disconnectOnlineUsersHandler(socket);
+        rooms = rooms.filter(room => room.owner !== socket.id);
     });
 
     socket.on("sendMessage", (data) => {
@@ -56,7 +57,7 @@ httpServer.listen(3003, () => {
 });
 
 // Handlers
-const disconnectHandler = (socket: Socket) => {
+const disconnectOnlineUsersHandler = (socket: Socket) => {
     const user = onlineUsers.find(user => user.id === socket.id);
     onlineUsers = onlineUsers.filter(user => user.id !== socket.id);
 
