@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useStore } from './store/store';
+import { store } from './main';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -13,10 +13,9 @@ const router = createRouter({
             path: "/map",
             component: () => import("@/views/map/Index.vue"),
             beforeEnter: (to, from, next) => {
+                console.log("store.name", store.name);
 
-                console.log("store.name", useStore().name);
-
-                if (!useStore().name) {
+                if (!store.name) {
                     next("/");
                 } else {
                     next();
