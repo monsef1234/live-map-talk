@@ -9,7 +9,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "https://map-talk-chat.vercel.app/",
+        origin: ["https://map-talk-chat.vercel.app", "https://map-talk-chat.vercel.app/"],
         methods: ["GET", "POST"]
     }
 });
