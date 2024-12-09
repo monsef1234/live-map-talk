@@ -9,17 +9,13 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "*",
+        origin: "https://map-talk-chat.vercel.app/",
         methods: ["GET", "POST"]
     }
 });
 
 let onlineUsers: User[] = [];
 let rooms: Room[] = [];
-
-app.get("/", (res: Response) => {
-    res.send("Hello World");
-});
 
 io.on("connection", (socket: Socket) => {
     console.log("A user connected", socket.id);
