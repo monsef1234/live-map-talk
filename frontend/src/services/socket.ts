@@ -6,7 +6,7 @@ import { Position } from "@/types/position";
 import { Room } from "@/types/room";
 
 const store = useStore();
-export const socket = io("http://localhost:3003");
+export const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 export const socketEvents = {
     connect: () => {
