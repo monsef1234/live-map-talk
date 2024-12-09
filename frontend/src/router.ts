@@ -16,7 +16,6 @@ const router = createRouter({
                 const store = useStore();
                 console.log(store)
                 console.log("store.name", store.name);
-
                 if (!store.name) {
                     next("/");
                 } else {
