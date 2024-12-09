@@ -9,8 +9,10 @@ export const emitter = new TinyEmitter()
 const app = createApp(App)
 const pinia = createPinia()
 
-app
-  .use(router)
-  .use(pinia)
-  .mount('#app')
+app.use(pinia).use(router)
+
+router.isReady().then(() => {
+  console.log("router is ready");
+  app.mount('#app')
+})
 

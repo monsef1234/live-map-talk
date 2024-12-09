@@ -14,8 +14,7 @@ const router = createRouter({
             component: () => import("@/views/map/Index.vue"),
             beforeEnter: (to, from, next) => {
                 const store = useStore();
-                console.log(store);
-
+                console.log(store)
                 console.log("store.name", store.name);
 
                 if (!store.name) {
