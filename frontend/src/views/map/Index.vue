@@ -489,6 +489,8 @@ export default defineComponent({
     emitter.off("userLeft");
     emitter.off("message");
     emitter.off("endCall");
+
+    this.$router.push("/");
   },
 });
 </script>
