@@ -23,6 +23,7 @@ export const useStore = defineStore("map", {
         },
 
         setName(name: string) {
+            console.log("name", name);
             this.name = name
         },
 
