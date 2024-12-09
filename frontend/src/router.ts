@@ -12,18 +12,28 @@ const router = createRouter({
         {
             path: "/map",
             component: () => import("@/views/map/Index.vue"),
-            beforeEnter: (to, from, next) => {
-                const store = useStore();
-                console.log(store)
-                console.log("store.name", store.name);
-                if (!store.name) {
-                    next("/");
-                } else {
-                    next();
-                }
-            },
+            // beforeEnter: (to, from, next) => {
+            //     const store = useStore();
+            //     console.log(store)
+            //     console.log("store.name", store.name);
+            //     if (!store.name) {
+            //         next("/");
+            //     } else {
+            //         next();
+            //     }
+            // },
         },
     ],
+});
+
+router.beforeEach((to, from, next) => {
+    const store = useStore();
+
+    if (to.path === "/map" && !store.name) {
+        next("/");
+    } else {
+        next();
+    }
 });
 
 export default router;
