@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory, RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
-import { useStore } from '@/store/store';
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+// import { useStore } from '@/store/store';
 
 
-const routes = [
+const routes: Array<RouteRecordRaw> = [
     {
         path: '/',
         component: () => import('@/views/home/Index.vue'),
@@ -11,16 +11,15 @@ const routes = [
     {
         path: "/map",
         component: () => import("@/views/map/Index.vue"),
-        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-            const store = useStore();
-            console.log(store)
-            console.log("store.name", store.name);
-            if (!store.name) {
-                next("/");
-            } else {
-                next();
-            }
-        },
+        //Production update store issue
+        // beforeEnter: (to, from, next) => {
+        //     const store = useStore();
+        //     if (!store.name) {
+        //         next("/");
+        //     } else {
+        //         next();
+        //     }
+        // },
     },
 ];
 

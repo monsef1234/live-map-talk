@@ -8,6 +8,7 @@ A real-time location-based chat application that allows users to communicate wit
 - 💬 Real-time chat functionality
 - 🎥 Peer-to-peer video calling
 - 📍 Location-based user discovery
+**Note:** This application is not responsive. 
 
 ## Tech Stack
 
