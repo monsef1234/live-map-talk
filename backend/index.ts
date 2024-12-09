@@ -35,7 +35,7 @@ io.on("connection", (socket: Socket) => {
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
         disconnectOnlineUsersHandler(socket);
-        rooms = rooms.filter(room => room.owner !== socket.id);
+        disconnectRoomUsersHandler(socket);
     });
 
     socket.on("sendMessage", (data) => {
@@ -44,6 +44,10 @@ io.on("connection", (socket: Socket) => {
 
     socket.on("sendRoom", (data) => {
         sendRoomHandler(socket, data);
+    });
+
+    socket.on("removeRoom", (data) => {
+        removeRoomHandler(socket, data);
     });
 
     socket.emit("onlineUsers", onlineUsers);
@@ -62,6 +66,13 @@ const disconnectOnlineUsersHandler = (socket: Socket) => {
     onlineUsers = onlineUsers.filter(user => user.id !== socket.id);
 
     socket.broadcast.emit("userLeft", user?.name);
+};
+
+const disconnectRoomUsersHandler = (socket: Socket) => {
+    const room = rooms.find(room => room.owner === socket.id);
+    rooms = rooms.filter(room => room.owner !== socket.id);
+
+    socket.broadcast.emit("removeRoom", { id: room?.id });
 };
 
 const loginHandler = (socket: Socket, data: { name: string; position: Position }) => {
@@ -84,6 +95,18 @@ const messageHandler = (socket: Socket, data: { content: string; to: string; fro
 };
 
 const sendRoomHandler = (socket: Socket, data: Room) => {
-    rooms.push(data);
+    const existingRoom = rooms.find(room => room.id === data.id);
+
+    if (existingRoom) {
+        rooms = rooms.map(room => room.id === data.id ? data : room);
+    } else {
+        rooms.push(data);
+    }
+
     socket.broadcast.emit("sendRoom", data);
+};
+
+const removeRoomHandler = (socket: Socket, data: { id: string }) => {
+    rooms = rooms.filter(room => room.id !== data.id);
+    socket.broadcast.emit("removeRoom", data);
 };

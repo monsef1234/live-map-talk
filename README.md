@@ -70,10 +70,10 @@ VITE_API_KEY=your_gomaps_api_key
 ## Usage
 
 1. Allow location access when prompted by your browser
-2. View other users on the map
+2. View other users on the ma p
 3. Click on a user's marker to start a chat
 4. Exchange messages in real-time
-5. Initiate a video call with another user
+5. Open room for video calls 
 
 ## Contributing
 

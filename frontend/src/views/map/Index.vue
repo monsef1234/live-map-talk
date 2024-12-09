@@ -48,7 +48,7 @@
         v-for="room in store.rooms"
         :key="room.id"
         @click="joinRoom(room)"
-        :disabled="room.disabled"
+        :disabled="disabledRooms(room)"
         class="bg-[var(--secondary-color)] w-14 h-14 text-[var(--primary-color)] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {{ room.name }}
@@ -117,7 +117,6 @@ export default defineComponent({
       messages: [] as Message[],
       maxChats: 3 as number,
 
-      room: null as Room | null,
       disabledCall: false as boolean,
       maxRoomUsers: 2 as number,
     };
@@ -152,8 +151,10 @@ export default defineComponent({
       }
 
       targetRoom.users.push(newUser);
-      targetRoom.disabled = targetRoom.users.length === 2;
-      this.room = targetRoom;
+      socketEvents.sendRoom({
+        ...room,
+        users: targetRoom.users,
+      });
 
       try {
         const stream = await this.getUserMedia();
@@ -162,15 +163,19 @@ export default defineComponent({
         call.on("stream", (remoteStream: MediaStream) => {
           emitter.emit("remoteStream", remoteStream);
         });
+        call.on("close", () => {
+          emitter.emit("removeCall");
+          this.disabledCall = false;
+        });
 
         emitter.emit("call", stream);
+
         this.disabledCall = true;
       } catch (error) {
         console.error("Failed to start media stream:", error);
         targetRoom.users = targetRoom.users.filter(
           (u: User) => u.id !== newUser.id
         );
-        this.room = null;
       }
     },
 
@@ -193,40 +198,73 @@ export default defineComponent({
         };
 
         this.store.setRooms([...this.store.rooms, newRoom]);
-        this.room = newRoom;
         this.disabledCall = true;
 
         socketEvents.sendRoom({
           ...newRoom,
-          disabled: false,
         });
 
         emitter.emit("call", stream);
 
         this.peer.on("call", (call: any) => {
+          console.log("call recived", call);
+
           call.answer(stream);
           call.on("stream", (remoteStream: MediaStream) => {
             emitter.emit("remoteStream", remoteStream);
           });
+          call.on("close", () => {
+            emitter.emit("removeRemoteStream");
+          });
         });
       } catch (err) {
         console.error("Failed to start call:", err);
-        this.room = null;
       }
     },
 
     endCall() {
       const existingRoom = this.store.rooms.find(
-        (r: Room) => r.owner === this.room?.owner
+        (r: Room) => r.owner === this.store.id
       );
+
       if (existingRoom) {
         this.store.setRooms(
-          this.store.rooms.filter((r: Room) => r.owner !== this.room?.owner)
+          this.store.rooms.filter((r: Room) => r.owner !== this.store.id)
         );
-        this.room = null;
+
+        socketEvents.removeRoom({
+          id: existingRoom.id,
+        });
+      }
+
+      const existingUser = this.store.rooms.find(
+        (r: Room) =>
+          r.users.map((u: User) => u.id).includes(this.store.id) &&
+          r.owner !== this.store.id
+      );
+
+      if (existingUser) {
+        existingUser.users = existingUser.users.filter(
+          (u: User) => u.id !== this.store.id
+        );
+        socketEvents.sendRoom({
+          ...existingUser,
+          users: existingUser.users,
+        });
+      }
+
+      if (this.peer) {
+        this.peer.destroy();
+        this.peer = new Peer(this.store.id);
       }
 
       this.disabledCall = false;
+    },
+
+    disabledRooms(room: Room) {
+      return (
+        room.users.length >= this.maxRoomUsers || room.owner === this.store.id
+      );
     },
 
     getUserMedia() {

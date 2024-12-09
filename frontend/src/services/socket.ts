@@ -27,6 +27,7 @@ export const socketEvents = {
         socket.emit("login", { ...data });
         console.log("login", data);
 
+
     },
 
     userJoined: () => {
@@ -34,6 +35,7 @@ export const socketEvents = {
             const filteredUsers = store.onlineUsers.filter(user => user.id !== data.id);
             store.setOnlineUsers([...filteredUsers, data]);
             emitter.emit("userJoined", data);
+
         });
     },
 
@@ -87,8 +89,17 @@ export const socketEvents = {
 
     receiveRoom: () => {
         socket.on("sendRoom", (data: Room) => {
-            data.disabled = data.users.length === 2;
-            store.setRooms([...store.rooms, data]);
+            const existingRoom = store.rooms.find((r: Room) => r.id === data.id);
+
+            if (existingRoom) {
+                store.setRooms(
+                    store.rooms.map((r: Room) =>
+                        r.id === data.id ? data : r
+                    )
+                );
+            } else {
+                store.setRooms([...store.rooms, data]);
+            }
         });
     },
 
@@ -97,6 +108,16 @@ export const socketEvents = {
             console.log(data);
 
             store.setRooms(data);
+        });
+    },
+
+    removeRoom: (data: { id: string }) => {
+        socket.emit("removeRoom", data);
+    },
+
+    removeReceiveRoom: () => {
+        socket.on("removeRoom", (data: { id: string }) => {
+            store.setRooms(store.rooms.filter((room: Room) => room.id !== data.id));
         });
     },
 };

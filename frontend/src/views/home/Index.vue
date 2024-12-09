@@ -84,6 +84,7 @@ export default defineComponent({
     socketEvents.userJoined();
     socketEvents.receiveRooms();
     socketEvents.receiveRoom();
+    socketEvents.removeReceiveRoom();
   },
 });
 </script>

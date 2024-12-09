@@ -1,10 +1,16 @@
 <template>
   <div v-show="localStream">
-    <div class="flex flex-col gap-2">
-      <!-- <video class="video-stream w-64 h-48 bg-black" ref="remoteVideo"></video> -->
+    <div class="flex flex-col gap-2 video-container">
       <video
         class="video-stream w-64 h-48 bg-black"
-        ref="localVideo"
+        v-show="remoteVideo"
+        :srcObject="remoteVideo"
+        autoplay
+      ></video>
+      <video
+        class="video-stream w-64 h-48 bg-black"
+        v-show="localVideo"
+        :srcObject="localVideo"
         autoplay
         muted
       ></video>
@@ -33,7 +39,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 
 import MicrophoneIcon from "./icons/MicrophoneIcon.vue";
 import CameraIcon from "./icons/CameraIcon.vue";
@@ -41,6 +47,7 @@ import MicrophoneOffIcon from "./icons/MicrophoneOffIcon.vue";
 import CameraOffIcon from "./icons/CameraOffIcon.vue";
 import PhoneOffIcon from "./icons/PhoneOffIcon.vue";
 import { emitter } from "../../../main";
+
 export default defineComponent({
   name: "Call",
 
@@ -49,14 +56,7 @@ export default defineComponent({
   },
 
   setup() {
-    const localVideo = ref<HTMLVideoElement | null>(null);
-    const remoteVideo = ref<HTMLVideoElement | null>(null);
-    const localStream = ref<MediaStream | null>(null);
-
     return {
-      localVideo,
-      remoteVideo,
-      localStream,
       MicrophoneIcon,
       CameraIcon,
       MicrophoneOffIcon,
@@ -68,6 +68,9 @@ export default defineComponent({
     return {
       camera: false,
       microphone: false,
+      localStream: null as MediaStream | null,
+      localVideo: null as HTMLVideoElement | null,
+      remoteVideo: null as HTMLVideoElement | null,
     };
   },
 
@@ -91,12 +94,12 @@ export default defineComponent({
     },
 
     endCall() {
-      this.localStream?.getTracks().forEach((track) => {
+      this.localStream?.getTracks().forEach((track: MediaStreamTrack) => {
         track.stop();
       });
 
       this.localStream = null;
-      this.localVideo.srcObject = null;
+      this.remoteVideo = null;
 
       emitter.emit("endCall");
     },
@@ -105,18 +108,33 @@ export default defineComponent({
   mounted() {
     emitter.on("call", (stream: MediaStream) => {
       this.localStream = stream;
-      this.localVideo.srcObject = stream;
+      this.localVideo = stream;
     });
     emitter.on("remoteStream", (stream: MediaStream) => {
-      console.log("remoteStream", stream);
+      this.remoteVideo = stream;
+    });
+    emitter.on("removeRemoteStream", () => {
+      this.remoteVideo = null;
+    });
+    emitter.on("removeCall", () => {
+      this.localStream?.getTracks().forEach((track: MediaStreamTrack) => {
+        track.stop();
+      });
 
-      this.remoteVideo.srcObject = stream;
+      this.localStream = null;
+      this.localVideo = null;
+      this.remoteVideo = null;
     });
   },
 
   beforeUnmount() {
+    this.localStream?.getTracks().forEach((track: MediaStreamTrack) => {
+      track.stop();
+    });
+
     emitter.off("call");
     emitter.off("remoteStream");
+    emitter.off("removeRemoteStream");
   },
 });
 </script>
