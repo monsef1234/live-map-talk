@@ -38,7 +38,7 @@
 import { defineComponent } from "vue";
 import { socketEvents } from "../../services/socket";
 import { useStore } from "../../store/store";
-import { User } from "../../types/user";
+// import { User } from "../../types/user";
 
 export default defineComponent({
   name: "Home",
