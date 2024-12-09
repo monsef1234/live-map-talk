@@ -71,6 +71,8 @@ export default defineComponent({
         this.error = "Name already taken";
       } else {
         this.store.setName(this.name);
+        console.log(this.store);
+
         this.$router.replace("/map");
       }
     },
