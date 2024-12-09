@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
 import { TinyEmitter } from 'tiny-emitter'
 import router from './router'
 import App from './App.vue'
@@ -9,10 +9,11 @@ export const emitter = new TinyEmitter()
 const app = createApp(App)
 const pinia = createPinia()
 
-app.use(pinia).use(router)
+setActivePinia(pinia)
+app.use(router)
 
 router.isReady().then(() => {
   console.log("router is ready");
-  app.mount('#app')
+  app.use(pinia).mount('#app')
 })
 
