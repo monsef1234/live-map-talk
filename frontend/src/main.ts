@@ -7,8 +7,9 @@ import './style.css'
 
 export const emitter = new TinyEmitter()
 const app = createApp(App)
+const pinia = createPinia()
 
 app
   .use(router)
-  .use(createPinia())
+  .use(pinia)
   .mount('#app')
