@@ -111,8 +111,9 @@ export default defineComponent({
 
     scrollToBottom() {
       const observer = new MutationObserver(() => {
-        this.$refs.chatContainer.scrollTop =
-          this.$refs.chatContainer.scrollHeight;
+        (this.$refs.chatContainer as HTMLElement).scrollTop = (
+          this.$refs.chatContainer as HTMLElement
+        ).scrollHeight;
       });
 
       observer.observe(this.$refs.chatContainer as HTMLElement, {

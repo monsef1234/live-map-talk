@@ -109,7 +109,7 @@ export default defineComponent({
       loading: false as boolean,
 
       label: null as string | null,
-      distance: null as number | null,
+      distance: null as string | null,
       cardVisible: false as boolean,
       map: null as any,
 
@@ -132,7 +132,7 @@ export default defineComponent({
       const newUser = {
         id: this.store.id,
         name: this.store.name,
-        position: this.store.position,
+        position: this.store.position as Position,
       };
 
       const existingRoom = this.store.rooms.find(
@@ -171,7 +171,7 @@ export default defineComponent({
         emitter.emit("call", stream);
 
         this.disabledCall = true;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to start media stream:", error);
         targetRoom.users = targetRoom.users.filter(
           (u: User) => u.id !== newUser.id
@@ -187,14 +187,13 @@ export default defineComponent({
           id: Date.now().toString(),
           name: this.store.name.slice(0, 1).toUpperCase(),
           owner: this.store.id,
-          disabled: true,
           users: [
             {
               id: this.store.id,
               name: this.store.name,
-              position: this.store.position,
-            },
-          ],
+              position: this.store.position as Position,
+            } as User,
+          ] as User[],
         };
 
         this.store.setRooms([...this.store.rooms, newRoom]);
@@ -287,7 +286,7 @@ export default defineComponent({
         (user: User) => user.name === this.label
       );
       const isUserAlreadyInChat = this.activeChats.some(
-        (chat: User) => chat.id === targetUser.id
+        (chat: User) => chat.id === targetUser?.id
       );
       if (!targetUser || isUserAlreadyInChat) {
         return;
@@ -357,7 +356,7 @@ export default defineComponent({
 
             socketEvents.login({
               name: this.store.name,
-              position: this.store.position,
+              position: this.store.position as Position,
             });
 
             resolve(this.store.position);
@@ -436,9 +435,9 @@ export default defineComponent({
       this.loading = true;
       try {
         await this.getCoords();
-        this.map = this.createMap(this.store.position);
-        this.createMarker(this.store.position, this.store.name);
-      } catch (error) {
+        this.map = this.createMap(this.store.position as Position);
+        this.createMarker(this.store.position as Position, this.store.name);
+      } catch (error: any) {
         this.error = error.message ?? "Unknown error";
       } finally {
         this.loading = false;

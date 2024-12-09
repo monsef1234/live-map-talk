@@ -69,8 +69,8 @@ export default defineComponent({
       camera: false,
       microphone: false,
       localStream: null as MediaStream | null,
-      localVideo: null as HTMLVideoElement | null,
-      remoteVideo: null as HTMLVideoElement | null,
+      localVideo: null as MediaStream | null,
+      remoteVideo: null as MediaStream | null,
     };
   },
 

@@ -36,7 +36,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { emitter } from "../../main";
 import { socketEvents } from "../../services/socket";
 
 import { useStore } from "../../store/store";
