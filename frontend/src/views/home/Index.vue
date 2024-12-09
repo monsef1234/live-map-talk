@@ -38,7 +38,7 @@
 import { defineComponent } from "vue";
 import { socketEvents } from "../../services/socket";
 import { useStore } from "../../store/store";
-// import { User } from "../../types/user";
+import { User } from "../../types/user";
 
 export default defineComponent({
   name: "Home",
@@ -57,22 +57,22 @@ export default defineComponent({
 
   methods: {
     handleSubmit(e: Event) {
-      // e.preventDefault();
-      // if (!this.name) {
-      //   this.error = "Name is required";
-      //   return;
-      // }
+      e.preventDefault();
+      if (!this.name) {
+        this.error = "Name is required";
+        return;
+      }
 
-      // const existingUser = this.store.onlineUsers.find(
-      //   (user: User) => user.name === this.name
-      // );
+      const existingUser = this.store.onlineUsers.find(
+        (user: User) => user.name === this.name
+      );
 
-      // if (existingUser) {
-      //   this.error = "Name already taken";
-      // } else {
-      this.store.setName(this.name);
-      this.$router.replace("/map");
-      // }
+      if (existingUser) {
+        this.error = "Name already taken";
+      } else {
+        this.store.setName(this.name);
+        this.$router.push("/map");
+      }
     },
   },
 
